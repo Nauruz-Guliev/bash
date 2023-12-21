@@ -1,41 +1,52 @@
 #!/bin/bash
 
-stepCount=1
-hitCount=0
-missCount=0
-numbers=()
+GREEN='\e[32m'
+RED='\e[31m'
+RESET='\e[0m'
+
+declare -i total_guesses=1
+declare -i correct_guesses=0
+declare -i incorrect_guesses=0
+declare -a numbers_colored
 
 while true; do
-    randomNum=$(( RANDOM % 10 ))
+    secret_number=${RANDOM: -1}
+    echo "Ход: ${total_guesses}"
 
-    echo "Step: $stepCount"
-    read -rp "Please enter a number from 0 to 9 (q to quit): " input
+    read -rp "Пожалуйста, введите число от 0 до 9 (q - выход): " guess
 
-    if [[ $input == "q" ]]; then
-        break
-    fi
+    case "${guess}" in
+        [0-9])
+            if [[ "${guess}" == "${secret_number}" ]]
+                then
+                    echo -e "${GREEN}Угадано! Моё число: ${secret_number}${RESET}"
+                    correct_guesses=$((correct_guesses+1))
+                    secret_number_colored="${GREEN}${secret_number}${RESET}"
+                else
+                    echo -e "${RED}Не угадано! Моё число: ${secret_number}${RESET}"
+                    incorrect_guesses=$((incorrect_guesses+1))
+                    secret_number_colored="${RED}${secret_number}${RESET}"
+            fi
+            numbers_colored+=("${secret_number_colored}")
+        ;;
+        q)
+            break
+        ;;
+        *)
+            echo -e "Неверный ввод. Пожалуйста, попробуйте ещё раз.\n"
+            continue
+        ;;
+    esac
 
-    if ! [[ $input =~ ^[0-9]$ ]]; then
-        echo "Invalid input. Please try again."
-        continue
-    fi
+    correct_guesses_percent=$((correct_guesses*100/(correct_guesses + incorrect_guesses)))
+    incorrect_guesses_percent=$((100-correct_guesses_percent))
+    echo "Угадано: ${correct_guesses_percent}%" "Не угадано: ${incorrect_guesses_percent}%"
 
-    if [[ $input -eq $randomNum ]]; then
-        echo "Hit! My number: $randomNum"
-        (( hitCount++ ))
-        numbers+=("$(tput setaf 2)$randomNum$(tput sgr0)")
-    else
-        echo "Miss! My number: $randomNum"
-        (( missCount++ ))
-        numbers+=("$(tput setaf 1)$randomNum$(tput sgr0)")
-    fi
+    numbers_colored_length=${#numbers_colored[@]}
+    numbers_colored_length=$(( numbers_colored_length < 10 ? numbers_colored_length : 10 ))
 
-    hitPercentage=$(( (hitCount * 100) / (hitCount + missCount) ))
-    missPercentage=$(( 100 - hitPercentage ))
+    echo -e "Числа: ${numbers_colored[*]: -numbers_colored_length}"
+    echo -e ""
 
-    echo "Hit: $hitPercentage%  Miss: $missPercentage%"
-    echo "Recent Numbers: ${numbers[@]: -10}"
-    echo
-
-    (( stepCount++ ))
+    total_guesses=$((total_guesses+1))
 done
